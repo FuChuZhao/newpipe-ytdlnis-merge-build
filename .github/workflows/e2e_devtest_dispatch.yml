@@ -1,0 +1,67 @@
+name: e2e-devtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Private source repo (OWNER/REPO)"
+        required: true
+        type: string
+      source_ref:
+        description: "Git ref/commit to test"
+        required: true
+        type: string
+      artifact_name:
+        description: "Uploaded artifact name"
+        required: true
+        default: "e2e-devtest-artifacts"
+        type: string
+      test_server_port:
+        description: "Host test server port"
+        required: true
+        default: "18080"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private source repo (deploy key)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repo }}
+          ref: ${{ inputs.source_ref }}
+          ssh-key: ${{ secrets.SOURCE_REPO_SSH_KEY }}
+          path: source
+          fetch-depth: 1
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Run E2E on emulator (devtest build type)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            cd source
+            export TEST_SERVER_PORT="${{ inputs.test_server_port }}"
+            tool/ci/run_devtest_e2e.sh
+
+      - name: Upload E2E artifacts (retention 1 day)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            source/tool/ci/artifacts/**
+            source/app/build/reports/**
+          if-no-files-found: warn
+          retention-days: 1
+

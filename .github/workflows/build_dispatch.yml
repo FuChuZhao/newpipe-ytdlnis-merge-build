@@ -1,0 +1,54 @@
+name: build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Private source repo (OWNER/REPO)"
+        required: true
+        type: string
+      source_ref:
+        description: "Git ref/commit to build"
+        required: true
+        type: string
+      artifact_name:
+        description: "Uploaded artifact name"
+        required: true
+        default: "apk-debug"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private source repo (deploy key)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repo }}
+          ref: ${{ inputs.source_ref }}
+          ssh-key: ${{ secrets.SOURCE_REPO_SSH_KEY }}
+          path: source
+          fetch-depth: 1
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build (private repo entrypoint)
+        working-directory: source
+        run: tool/ci/build.sh
+
+      - name: Upload APK (retention 1 day)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            source/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
