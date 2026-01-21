@@ -33,10 +33,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.source_repo }}
-          ref: ${{ inputs.source_ref }}
           ssh-key: ${{ secrets.SOURCE_REPO_SSH_KEY }}
           path: source
           fetch-depth: 1
+
+      - name: Checkout requested source_ref
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${{ inputs.source_ref }}"
+          echo "==> Checking out source_ref: ${ref}"
+
+          if git fetch --no-tags --depth=1 origin "${ref}"; then
+            git checkout --force FETCH_HEAD
+          else
+            echo "==> Shallow fetch failed; falling back to full fetch"
+            if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+              git fetch --no-tags --prune --unshallow origin
+            else
+              git fetch --no-tags --prune origin
+            fi
+            git checkout --force "${ref}"
+          fi
+
+          echo "==> Checked out $(git rev-parse HEAD)"
 
       - name: Setup JDK
         uses: actions/setup-java@v4
