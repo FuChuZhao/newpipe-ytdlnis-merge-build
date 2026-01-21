@@ -41,7 +41,7 @@ jobs:
 
       - name: Build (private repo entrypoint)
         working-directory: source
-        run: tool/ci/build.sh
+        run: bash tool/ci/build.sh
 
       - name: Upload APK (retention 1 day)
         uses: actions/upload-artifact@v4
@@ -51,4 +51,3 @@ jobs:
             source/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 1
-
