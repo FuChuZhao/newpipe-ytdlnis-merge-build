@@ -88,6 +88,8 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: |
             source/tool/ci/artifacts/**
+            source/app/build/outputs/apk/devtest/*.apk
+            source/app/build/outputs/apk/androidTest/devtest/*.apk
             source/app/build/reports/**
           if-no-files-found: warn
           retention-days: 1
